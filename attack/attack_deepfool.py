@@ -43,7 +43,6 @@ class DeepFool(Attack):
 
         for b in range(images.shape[0]):  # 遍历 batchsize
 
-            # 一次生成时间太久，考虑增大间隔
             image = images[b:b + 1, :, :, :]
 
             image.requires_grad = True
@@ -68,7 +67,7 @@ class DeepFool(Attack):
                 r = None
                 min_value = None
 
-                for k in range(num_classes):
+                for k in range(num_classes):  # 基于分类个数
                     if k == pre_0:
                         continue
 
