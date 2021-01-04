@@ -9,7 +9,7 @@ from .attack import Attack
 
 class FGSM(Attack):
     r"""
-    快速符号梯度攻击法，通过添加由网络梯度生成的攻击噪声，基本算是对抗攻击算法的鼻祖
+    简介：快速符号梯度攻击法，通过添加由网络梯度生成的攻击噪声，基本算是对抗攻击算法的鼻祖
     论文：Explaining and harnessing adversarial examples
     论文地址：[https://arxiv.org/abs/1412.6572]
 
@@ -42,20 +42,17 @@ class FGSM(Attack):
         r"""
         Overridden.
         """
-        # print('label:',labels)
-        images = images.to(self.device)
-        labels = labels.to(self.device)
-        labels = self._transform_label(images, labels)
+        images = images.clone().detach().to(self.device)
+        labels = labels.clone().detach().to(self.device)
         loss = nn.CrossEntropyLoss()
 
         images.requires_grad = True
         outputs = self.model(images)
-        cost = self._targeted*loss(outputs, labels).to(self.device)
-        # print(self._targeted)  -1
-        # print('argmax:',torch.argmax(outputs))
+        cost = self._targeted * loss(outputs, labels)
 
         grad = torch.autograd.grad(cost, images,
                                    retain_graph=False, create_graph=False)[0]
+        # retain_graph是否释放计算图
 
         adv_images = images + self.eps * grad.sign()
         adv_images = torch.clamp(adv_images, min=0, max=1).detach()

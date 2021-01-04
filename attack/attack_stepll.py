@@ -52,30 +52,39 @@ class StepLL(Attack):
         r"""
         Overridden.
         """
-        images = images.to(self.device)
+        images = images.clone().detach().to(self.device)
 
         outputs = self.model(images)
-        _, labels = torch.min(outputs.data, dim=1)  # 概率最小的类别作为标签
-        labels = labels.detach_()
+
+        # 概率最小的类别下标替换为标签
+        _, labels = torch.min(outputs.data, dim=1)
+        labels = labels.clone().detach().to(self.device)
 
         loss = nn.CrossEntropyLoss()
+
+        ori_images = images.clone().detach()  # 记下原图
 
         for i in range(self.steps):
             images.requires_grad = True
             outputs = self.model(images)
-            cost = loss(outputs, labels).to(self.device)
+            cost = loss(outputs, labels)
 
             grad = torch.autograd.grad(cost, images,
                                        retain_graph=False, create_graph=False)[0]
 
             adv_images = images - self.alpha * grad.sign()  # 让预测结果朝着这个ll类走
 
-            # 下面这里是为了把 FGSM里的一步eps分成很多小步的alpha
-            a = torch.clamp(images - self.eps, min=0)
-            b = (adv_images >= a).float() * adv_images + (a > adv_images).float() * a
-            c = (b > images + self.eps).float() * (images + self.eps) + (images + self.eps >= b).float() * b
-            images = torch.clamp(c, max=1).detach()
+            """下面为裁剪总步伐不超过eps 且也在[0,1]中"""
+            # 小于eps的用eps，不然用alpha
+            a = torch.clamp(ori_images - self.eps, min=0)
+            b = (adv_images >= a).float() * adv_images + (adv_images < a).float() * a
+
+            # 大于eps的用eps，不然用alpha
+            c = torch.clamp(ori_images + self.eps, max=1)
+            images = ((b > c).float() * c + (b <= c).float() * b).detach()
 
         adv_images = images
 
         return adv_images
+
+

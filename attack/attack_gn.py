@@ -9,17 +9,21 @@ from .attack import Attack
 
 class GN(Attack):
     r"""
-    增加高斯噪声
-    Arguments:
+    简介：增加高斯噪声，最基本基本基本的思想
+    参数:
         model (nn.Module): Model to attack.
         sigma (nn.Module): sigma (DEFAULT: 0.1).
 
     Shape:
-        - images: :math:`(N, C, H, W)` where `N = number of batches`, `C = number of channels`,        `H = height` and `W = width`. It must have a range [0, 1].
-        - labels: :math:`(N)` where each value :math:`y_i` is :math:`0 \leq y_i \leq` `number of labels`.
-        - output: :math:`(N, C, H, W)`.
+        - images: (N, C, H, W)
+             N = batchsize
+             C = 通道数
+             H, W = 图片尺寸
+            必须在[0,1]范围内
+        - labels: (N) 图片对应类别的下标
+        - output: (N, C, H, W)   同images
 
-    Examples::
+    使用示例:
         >>> attack = torchattacks.GN(Model)
         >>> adv_images = attack(images, labels)
 
@@ -35,7 +39,10 @@ class GN(Attack):
         Overridden.
         """
         images = images.clone().detach().to(self.device)
-        adv_images = images + self.sigma*torch.randn_like(images)
+        # randn_like返回大小为input的size，由均值为0，方差为1的正态分布的随机数值
+        adv_images = images + self.sigma * torch.randn_like(images)
         adv_images = torch.clamp(adv_images, min=0, max=1).detach()
 
         return adv_images
+
+

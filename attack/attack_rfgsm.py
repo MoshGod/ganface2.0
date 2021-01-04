@@ -12,12 +12,12 @@ class RFGSM(Attack):
     'Ensemble Adversarial Training : Attacks and Defences'
     [https://arxiv.org/abs/1705.07204]
 
-    RFGSM = Random Noise Start + FGSM
+    RFGSM = Random Noise Start + FGSM, Distance Measure : Linf
 
     Arguments:
         model (nn.Module): Model to attack.
-        eps (float): strength of the attack or maximum perturbation. (DEFALUT : 16/255)
-        alpha (float): step size. (DEFALUT : 8/255)
+        eps (float): strength of the attack or maximum perturbation. (DEFALUT : 16/256)
+        alpha (float): step size. (DEFALUT : 8/256)
         steps (int): number of steps. (DEFALUT : 1)
 
     Shape:
@@ -26,11 +26,11 @@ class RFGSM(Attack):
         - output: :math:`(N, C, H, W)`.
 
     Examples::
-        >>> attack = attack_rfgsm.RFGSM(Model, eps=16/255, alpha=8/255, steps=1)
+        >>> attack = attack_rfgsm.RFGSM(Model, eps=16/256, alpha=8/256, steps=1)
         >>> adv_images = attack(images, labels)
     """
 
-    def __init__(self, model, eps=16 / 255, alpha=8 / 255, steps=1):
+    def __init__(self, model, eps=16 / 256, alpha=8 / 256, steps=1):
         super(RFGSM, self).__init__("RFGSM", model)
         self.eps = eps
         self.alpha = alpha
@@ -40,17 +40,17 @@ class RFGSM(Attack):
         r"""
         Overridden.
         """
-        images = images.to(self.device)
-        labels = labels.to(self.device)
+        images = images.clone().detach().to(self.device)
+        labels = labels.clone().detach().to(self.device)
         loss = nn.CrossEntropyLoss()
 
-        adv_images = images.clone().detach() + self.alpha * torch.randn_like(images).sign()
+        adv_images = images + self.alpha * torch.randn_like(images).sign()
         adv_images = torch.clamp(adv_images, min=0, max=1).detach()
 
         for i in range(self.steps):
             adv_images.requires_grad = True
             outputs = self.model(adv_images)
-            cost = self._targeted * loss(outputs, labels).to(self.device)
+            cost = self._targeted * loss(outputs, labels)
 
             grad = torch.autograd.grad(cost, adv_images,
                                        retain_graph=False, create_graph=False)[0]
