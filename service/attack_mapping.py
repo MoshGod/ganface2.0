@@ -21,7 +21,7 @@ img: torch.tensor [1, c, h, w]
 Model: 模型
 method: str, 对应对抗攻击算法的名称，一定要一模一样
 eps: 对抗攻击强度
-alpha:
+alpha: 裁剪幅度限制
 label: 只有targeted模式会用到，torch.tensor [1]
 mode: 对抗攻击模式，对应算法类里面的模式
 """
